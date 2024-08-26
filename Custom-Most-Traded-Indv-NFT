@@ -1,0 +1,27 @@
+-- This query is meant to track how much the user provided {{Address}} has traded individual NFTs over the years. 
+-- The goals for this query is to allow users to see if they could be flagged as Wash Traders. (buy and then selling same thing over and over to generate volume)
+-- Dashboard Link: https://flipsidecrypto.xyz/HitmonleeCrypto/your-total-sol-nft-volume-txn-count-more-checker-PqwgF9
+
+SELECT
+  m.nft_name,
+  m.NFT_COLLECTION_NAME,
+  SUM(CASE WHEN s.PURCHASER = '{{Address}}' THEN s.SALES_AMOUNT ELSE 0 END) as TOTAL_SOL_BUY_VOLUME,
+  SUM(CASE WHEN s.SELLER = '{{Address}}' THEN s.SALES_AMOUNT ELSE 0 END) as TOTAL_SOL_SELL_VOLUME,
+  SUM(CASE WHEN s.PURCHASER = '{{Address}}' THEN s.SALES_AMOUNT ELSE 0 END + CASE WHEN s.SELLER = '{{Address}}' THEN s.SALES_AMOUNT ELSE 0 END) as TOTAL_SOL_VOLUME,
+  COUNT(CASE WHEN s.PURCHASER = '{{Address}}' THEN 1 ELSE NULL END) as TOTAL_BUY_TRANSACTIONS,
+  COUNT(CASE WHEN s.SELLER = '{{Address}}' THEN 1 ELSE NULL END) as TOTAL_SELL_TRANSACTIONS,
+  COUNT(*) as TOTAL_TRANSACTIONS,
+  m.mint,
+  -- COUNT(DISTINCT m.mint) as UNIQUE_NFTS_TRADED,
+  m.collection_id,
+  CONCAT('https://solscan.io/token/', m.mint) as Link_To_Collection_URL
+FROM
+  solana.nft.fact_nft_sales s
+  JOIN solana.nft.dim_nft_metadata m ON s.mint = m.mint
+WHERE
+  s.seller = '{{Address}}'
+  OR s.purchaser = '{{Address}}'
+GROUP BY
+  m.nft_name, m.NFT_COLLECTION_NAME, m.mint, m.collection_id
+ORDER BY
+  TOTAL_Transactions DESC;
